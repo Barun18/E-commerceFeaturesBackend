@@ -120,7 +120,7 @@ app.post("/review", upload.single("image"), async (req, res) => {
 import { z } from "zod";
 import { error } from "console";
 const signupSchema = z.object({
-  username: z.string().trim().min(1,"Username is required").min(3, "Username must be at least 3 characters "),
+  username: z.string().trim().min(1, "Username is required").min(3, "Username must be at least 3 characters "),
   email: z.string().trim().email("Invalid email"),
   password: z.string().trim().min(6, "Password must be at least 6 characters"),
 
@@ -129,7 +129,7 @@ const signupSchema = z.object({
   address: z.string().trim().min(5),
   city: z.string().trim(),
   state: z.string().trim(),
-  pincode: z.string().trim().min(5),  
+  pincode: z.string().trim().min(5),
 });
 
 app.get("/signup", function (req, res) {
@@ -139,7 +139,7 @@ app.get("/signup", function (req, res) {
 app.post("/signup", async (req, res) => {
   try {
     const result = signupSchema.safeParse(req.body);
-    if(!result.success){
+    if (!result.success) {
       return res.status(400).json({
         errors: result.error.format(),
       });
@@ -260,7 +260,6 @@ app.post("/signout", (req, res) => {
   })
   res.json({ message: "Sign out successful" });
 });
-
 
 
 
@@ -452,6 +451,39 @@ app.post("/cart/decrease", async (req, res) => {
   }
 });
 
+
+app.post("/cart/remove", async (req, res) => {
+  try {
+    const user = await getUserFromToken(req);
+    console.log("User:", user)
+    
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+     const cart = await prisma.cart.findFirst({
+      where: {
+        userId: user.id, },
+    });
+    if (!cart){
+      return res.status(404).json({ message: "Cart not found"});
+    }
+    const { productId } = req.body;
+    
+    const deleted = await prisma.cartItem.deleteMany({
+      where: {
+        cartId: cart.id,
+        productId: Number(productId),
+      },
+    }) ;
+
+    console.log("deleted Count", deleted);
+    res.json({ message: "Item removed from cart" })
+  
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Error removing item" });
+  }
+})
 
 app.get("/profile", async (req, res) => {
   const user = await getUserFromToken(req);
